@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>musAI | Generative CAD Assistant</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #0052cc;
+            --hover-blue: #0043a8;
+            --bg-soft-blue: #f4f7fa;
+            --border-color: #e1e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --scad-bg: #0d1117;
+            --scad-border: #1e3a5f;
+            --scad-text: #c9d1d9;
+            --scad-comment: #6a9955;
+            --scad-keyword: #569cd6;
+            --scad-number: #b5cea8;
+            --success-green: #16a34a;
+            --success-bg: #f0fdf4;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-soft-blue);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 780px;
+            background: #ffffff;
+            padding: 48px;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 82, 204, 0.08),
+                        0 8px 10px -6px rgba(0, 82, 204, 0.05);
+            text-align: center;
+        }
+
+        /* ── Brand ─────────────────────────────────────────────────────── */
+        .brand-icon {
+            font-size: 42px;
+            color: var(--primary-blue);
+            margin-bottom: 15px;
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%   { transform: translateY(0px); }
+            50%  { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+
+        h1 {
+            color: var(--primary-blue);
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 16px;
+            margin-bottom: 32px;
+            margin-top: 8px;
+        }
+
+        /* ── Form ───────────────────────────────────────────────────────── */
+        form { text-align: left; }
+
+        .input-label {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .input-label i {
+            margin-right: 6px;
+            color: var(--primary-blue);
+        }
+
+        textarea {
+            width: 100%;
+            height: 160px;
+            padding: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 16px;
+            line-height: 1.5;
+            resize: none;
+            transition: all 0.2s ease;
+            background-color: #fcfdfe;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            background-color: #fff;
+            box-shadow: 0 0 0 4px rgba(0, 82, 204, 0.1);
+        }
+
+        button {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 14px 32px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: inherit;
+        }
+
+        button:hover {
+            background-color: var(--hover-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.2);
+        }
+
+        /* ── Loading ────────────────────────────────────────────────────── */
+        .loading-spinner {
+            display: none;
+            margin-top: 32px;
+            color: var(--primary-blue);
+            font-size: 32px;
+            animation: spin-slow 2s linear infinite;
+        }
+
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+
+        /* ── Error banner ───────────────────────────────────────────────── */
+        .error-box {
+            margin-top: 28px;
+            padding: 18px 22px;
+            background: #fff5f5;
+            border: 1px solid #fca5a5;
+            border-left: 4px solid #ef4444;
+            border-radius: 10px;
+            color: #b91c1c;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        /* ── Text output ────────────────────────────────────────────────── */
+        .output-box {
+            margin-top: 40px;
+            padding: 30px;
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            border-top: 4px solid var(--primary-blue);
+            border-radius: 12px;
+            line-height: 1.7;
+            font-size: 15px;
+            color: #334155;
+            text-align: left;
+        }
+
+        .output-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary-blue);
+            font-weight: 700;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        /* markdown rendered content */
+        .output-box h1, .output-box h2, .output-box h3 {
+            color: var(--primary-blue);
+            margin-top: 24px;
+            margin-bottom: 8px;
+        }
+
+        .output-box h1 { font-size: 20px; }
+        .output-box h2 { font-size: 18px; }
+        .output-box h3 { font-size: 16px; }
+
+        .output-box ul, .output-box ol {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+
+        .output-box li { margin-bottom: 6px; }
+
+        .output-box strong { color: var(--text-main); }
+
+        .output-box code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            background: #f1f5f9;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+
+        .output-box pre {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        .output-box pre code {
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        /* ── SCAD output panel ──────────────────────────────────────────── */
+        .scad-panel {
+            margin-top: 28px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--scad-border);
+            box-shadow: 0 8px 24px rgba(0, 20, 60, 0.18);
+            text-align: left;
+        }
+
+        /* top bar with filename + action buttons */
+        .scad-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #161b22;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--scad-border);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .scad-filename {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #8b949e;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        .scad-filename i {
+            color: #569cd6;
+            font-size: 15px;
+        }
+
+        .scad-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dot-red    { background: #ff5f56; }
+        .dot-yellow { background: #ffbd2e; }
+        .dot-green  { background: #27c93f; }
+
+        .scad-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .scad-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.18s ease;
+            margin-top: 0;   /* override global button margin */
+        }
+
+        .scad-btn-copy {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+        }
+
+        .scad-btn-copy:hover {
+            background: #30363d;
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: none;
+        }
+
+        .scad-btn-download {
+            background: #0052cc;
+            color: #fff;
+        }
+
+        .scad-btn-download:hover {
+            background: #0043a8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.35);
+        }
+
+        /* code block */
+        .scad-code-wrap {
+            background: var(--scad-bg);
+            padding: 24px;
+            overflow-x: auto;
+            max-height: 480px;
+            overflow-y: auto;
+        }
+
+        .scad-code-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+        .scad-code-wrap::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 3px;
+        }
+
+        pre.scad-pre {
+            margin: 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--scad-text);
+            white-space: pre;
+        }
+
+        /* lightweight SCAD syntax colouring via CSS + span */
+        .sc-comment  { color: #6a9955; }
+        .sc-keyword  { color: #569cd6; }
+        .sc-number   { color: #b5cea8; }
+        .sc-string   { color: #ce9178; }
+        .sc-module   { color: #dcdcaa; }
+
+        /* copy-success badge */
+        .copy-success {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 18px;
+            background: var(--success-bg);
+            border: 1px solid #86efac;
+            border-radius: 8px;
+            color: var(--success-green);
+            font-size: 13px;
+            font-weight: 600;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Brand -->
+        <div class="brand-icon">
+            <i class="fa-solid fa-robot"></i>
+        </div>
+        <h1>musAI</h1>
+        <p class="subtitle">Next-gen Generative CAD Assistant</p>
+
+        <!-- Prompt form -->
+        <form method="POST" id="cadForm">
+            <label class="input-label">
+                <i class="fa-solid fa-pen-nib"></i> Design Prompt
+            </label>
+            <textarea name="prompt" placeholder="I need a lightweight aluminum bracket for a drone motor..." required></textarea>
+
+            <button type="submit" id="submitBtn">
+                <span>Generate Parameters</span>
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </button>
+        </form>
+
+        <!-- Loading indicator -->
+        <i class="fa-solid fa-circle-notch loading-spinner" id="loadingSpinner"></i>
+
+        <!-- Error banner -->
+        {% if error %}
+        <div class="error-box">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <!-- ── AI text output ─────────────────────────────────────────── -->
+        {% if text_output %}
+        <div class="output-box">
+            <div class="output-header">
+                <i class="fa-solid fa-microchip"></i>
+                <span>Generated Step-by-Step</span>
+            </div>
+            {{ text_output|safe }}
+        </div>
+        {% endif %}
+
+        <!-- ── OpenSCAD code panel ────────────────────────────────────── -->
+        {% if scad_code %}
+        <div class="scad-panel" id="scadPanel">
+
+            <!-- top bar -->
+            <div class="scad-topbar">
+                <div class="scad-filename">
+                    <!-- macOS-style traffic lights (decorative) -->
+                    <span class="scad-dot dot-red"></span>
+                    <span class="scad-dot dot-yellow"></span>
+                    <span class="scad-dot dot-green"></span>
+                    &nbsp;
+                    <i class="fa-regular fa-file-code"></i>
+                    {{ filename }}
+                </div>
+                <div class="scad-actions">
+                    <button class="scad-btn scad-btn-copy" onclick="copyScad()" type="button">
+                        <i class="fa-regular fa-copy"></i> Copy
+                    </button>
+                    <button class="scad-btn scad-btn-download" onclick="downloadScad()" type="button">
+                        <i class="fa-solid fa-download"></i> Download .scad
+                    </button>
+                </div>
+            </div>
+
+            <!-- syntax-highlighted code -->
+            <div class="scad-code-wrap">
+                <pre class="scad-pre" id="scadCode">{{ scad_code | highlight_scad | safe }}</pre>
+            </div>
+
+        </div>
+
+        <!-- copy success message -->
+        <div class="copy-success" id="copySuccess">
+            <i class="fa-solid fa-circle-check"></i> Copied to clipboard!
+        </div>
+        {% endif %}
+
+    </div><!-- /.container -->
+
+    <!-- Hidden raw SCAD for JS actions -->
+    {% if scad_code %}
+    <script>
+        const RAW_SCAD = {{ scad_code | tojson }};
+        const FILENAME = {{ filename | tojson }};
+
+        function copyScad() {
+            navigator.clipboard.writeText(RAW_SCAD).then(() => {
+                const badge = document.getElementById('copySuccess');
+                badge.style.display = 'flex';
+                setTimeout(() => badge.style.display = 'none', 2500);
+            });
+        }
+
+        function downloadScad() {
+            const blob = new Blob([RAW_SCAD], { type: 'text/plain' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = FILENAME;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+    {% endif %}
+
+    <script>
+        document.getElementById('cadForm').addEventListener('submit', function () {
+            document.getElementById('loadingSpinner').style.display = 'inline-block';
+            const btn = document.getElementById('submitBtn');
+            btn.disabled      = true;
+            btn.style.opacity = '0.6';
+            btn.style.cursor  = 'not-allowed';
+        });
+    </script>
+</body>
+</html>
