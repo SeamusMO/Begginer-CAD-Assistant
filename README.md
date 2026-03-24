@@ -1,1 +1,1 @@
-try it out now at [musAI](musai.pythonanywhere.com)
+try it out now at [musAI](https://musai.pythonanywhere.com/)
